@@ -320,6 +320,7 @@ SAMLTrace.RequestItem = function(request) {
   if (this.request.saml != null || this.request.samlart != null) {
     this.availableTabs.push('SAML');
     this.availableTabs.push('Summary');
+    this.availableTabs.push('Analysis');
   }
 };
 SAMLTrace.RequestItem.prototype = {
@@ -526,6 +527,15 @@ SAMLTrace.RequestItem.prototype = {
     target.appendChild(samlSummary);
   },
 
+  'showAnalysis' : async function(target) {
+    if (typeof AnalysisTab !== 'undefined') {
+      const analysisContent = await AnalysisTab.generateAnalysisContent(this.request);
+      target.innerHTML = analysisContent;
+    } else {
+      target.innerHTML = '<div class="analysis-empty">Analysis module not loaded</div>';
+    }
+  },
+
   'showContent' : function(target, type) {
     target.innerText = "";
     switch (type) {
@@ -540,6 +550,9 @@ SAMLTrace.RequestItem.prototype = {
       break;
     case 'Summary':
       this.showSummary(target);
+      break;
+    case 'Analysis':
+      this.showAnalysis(target);
       break;
     }
   },
