@@ -24,13 +24,17 @@ var AnalysisTab = (function() {
     const attributeResults = AttributeMapper.analyzeAttributes(request);
     const checklistResults = OnboardingChecklist.generateChecklist(request, comparisonResults, securityResults);
     
+    // Run Phase 4 analyses
+    const certificateResults = CertificateValidator.validateCertificates(request, comparisonResults.metadata);
+    
     // Prepare all results for partner request generator
     const allResults = {
       comparison: comparisonResults,
       security: securityResults,
       diagnostics: diagnosticResults,
       attributes: attributeResults,
-      checklist: checklistResults
+      checklist: checklistResults,
+      certificates: certificateResults
     };
 
     // Summary Card
@@ -39,6 +43,11 @@ var AnalysisTab = (function() {
     // Security Score
     if (securityResults.securityScore !== undefined) {
       html += generateSecurityScoreCard(securityResults);
+    }
+
+    // Certificate Validation
+    if (certificateResults && certificateResults.summary.total > 0) {
+      html += generateCertificateSection(certificateResults);
     }
 
     // Onboarding Readiness Checklist
@@ -436,6 +445,100 @@ var AnalysisTab = (function() {
     }
 
     html += '</div></div></div>';
+    return html;
+  }
+
+  /**
+   * Generate certificate section
+   */
+  function generateCertificateSection(certificateResults) {
+    const { certificates, issues, summary } = certificateResults;
+    const certSummary = CertificateValidator.getCertificateSummary(certificateResults);
+    
+    let html = `
+      <div class="analysis-section certificate-section">
+        <div class="section-header">
+          <h3>🔐 Certificate Validation</h3>
+          <span class="cert-status ${certSummary.statusClass}">${certSummary.statusText}</span>
+        </div>
+        <div class="section-content">
+          <div class="cert-summary">
+            <div class="summary-item">
+              <span class="summary-label">Total:</span>
+              <span class="summary-value">${summary.total}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Valid:</span>
+              <span class="summary-value">${summary.valid}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Expiring Soon:</span>
+              <span class="summary-value">${summary.expiringSoon}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Expired:</span>
+              <span class="summary-value">${summary.expired}</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">Mismatched:</span>
+              <span class="summary-value">${summary.mismatched}</span>
+            </div>
+          </div>
+
+          <div class="certificates-list">
+    `;
+
+    certificates.forEach((cert, idx) => {
+      const statusClass = cert.status === 'valid' ? 'success' : 
+                         cert.status === 'expiring-soon' ? 'warning' : 'error';
+      const statusIcon = cert.status === 'valid' ? '✅' : 
+                        cert.status === 'expiring-soon' ? '⚠️' : '❌';
+      
+      html += `
+        <div class="certificate-item ${statusClass}">
+          <div class="cert-header">
+            <span class="cert-icon">${statusIcon}</span>
+            <strong>Certificate ${idx + 1}</strong>
+            <span class="cert-usage">${cert.usage}</span>
+          </div>
+          <div class="cert-details">
+            <div><strong>Subject:</strong> ${escapeHtml(cert.details.subject)}</div>
+            <div><strong>Valid From:</strong> ${cert.details.validFrom?.toLocaleDateString() || 'Unknown'}</div>
+            <div><strong>Valid To:</strong> ${cert.details.validTo?.toLocaleDateString() || 'Unknown'}</div>
+            <div><strong>Fingerprint:</strong> <code>${cert.fingerprint}</code></div>
+            ${cert.expiryInfo ? `<div class="expiry-info ${cert.status}">${cert.expiryInfo.message}</div>` : ''}
+            ${cert.metadataMismatch ? '<div class="cert-warning">⚠️  Does not match metadata</div>' : ''}
+          </div>
+          ${cert.issues.length > 0 ? `
+            <div class="cert-issues">
+              ${cert.issues.map(issue => `
+                <div class="issue-item ${issue.severity}">
+                  ${getSeverityIcon(issue.severity)} <strong>${issue.title}:</strong> ${escapeHtml(issue.message)}
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    });
+
+    html += '</div>';
+
+    // Overall certificate issues
+    if (issues.length > 0) {
+      html += '<div class="cert-overall-issues"><h4>Certificate Issues</h4>';
+      issues.forEach(issue => {
+        html += `
+          <div class="issue-item ${issue.severity}">
+            ${getSeverityIcon(issue.severity)} <strong>${issue.title}:</strong> ${escapeHtml(issue.message)}
+            ${issue.remediation ? `<div class="remediation">💡 ${escapeHtml(issue.remediation)}</div>` : ''}
+          </div>
+        `;
+      });
+      html += '</div>';
+    }
+
+    html += '</div></div>';
     return html;
   }
 

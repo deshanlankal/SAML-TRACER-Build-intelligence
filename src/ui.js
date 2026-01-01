@@ -122,6 +122,21 @@ ui = {
       let metadataDialog = document.getElementById("metadataDialog");
       metadataDialog.style.visibility = "visible";
     }, true);
+    
+    // Explain Mode button
+    document.getElementById("button-explain-mode").addEventListener("click", e => {
+      const isActive = ExplainMode.toggle();
+      if (isActive) {
+        e.target.classList.add("active");
+      } else {
+        e.target.classList.remove("active");
+      }
+    }, true);
+    
+    // Glossary button
+    document.getElementById("button-glossary").addEventListener("click", () => {
+      ExplainMode.showGlossary();
+    }, true);
 
     let modalCloseButtons = document.querySelectorAll(".modal-close");
     modalCloseButtons.forEach(button => button.addEventListener("click", ui.hideDialogs, true));

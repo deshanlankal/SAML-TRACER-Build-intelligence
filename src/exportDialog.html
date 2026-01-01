@@ -34,6 +34,26 @@
         </div>
       </div>
     </div>
+    
+    <div id=splitBox style="margin-top: 20px;">
+      <div>
+        <span>Export options:</span>
+      </div>
+      <div id="exportOptions">
+        <div>
+          <input type="checkbox" name="include-analysis" id="include-analysis" value="1">
+          <label for="include-analysis">Include intelligence analysis (security, diagnostics, certificates, etc.)</label>
+        </div>
+        <div>
+          <input type="radio" name="export-format" id="export-format-json" value="json" checked>
+          <label for="export-format-json">JSON format</label>
+        </div>
+        <div>
+          <input type="radio" name="export-format" id="export-format-text" value="text">
+          <label for="export-format-text">Text report</label>
+        </div>
+      </div>
+    </div>
   </form>
   
   <div class="bottomRow">

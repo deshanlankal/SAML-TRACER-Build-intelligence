@@ -20,17 +20,151 @@ SAMLTraceIO.prototype = {
   /**
    * Main feature: Exports and optionally filters traced requests.
    **/
-  'exportRequests': function(reqs, cookieProfile) {
+  'exportRequests': function(reqs, cookieProfile, includeAnalysis = false) {
     // Perform request filtering based on user input from dialog:
     var ef = new SAMLTraceIO.ExportFilter(cookieProfile);
     var filteredreqs = ef.perform(reqs);
 
+    // Enhance with analysis results if requested
+    if (includeAnalysis) {
+      filteredreqs = this.enhanceWithAnalysis(filteredreqs);
+    }
+
     // Package results
     var result = {
       requests: filteredreqs,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      includesAnalysis: includeAnalysis
     };
     return result;
+  },
+
+  /**
+   * Enhance requests with analysis results
+   **/
+  'enhanceWithAnalysis': async function(requests) {
+    const enhanced = [];
+    
+    for (const req of requests) {
+      const enriched = { ...req };
+      
+      // Add analysis only for SAML requests
+      if (req.saml) {
+        try {
+          // Run all analyses
+          const comparisonResults = await ComparisonEngine.compareRequest(req);
+          const securityResults = SecurityValidator.validateSecurity(req);
+          const diagnosticResults = DiagnosticRules.diagnose(req, comparisonResults, securityResults);
+          const certificateResults = CertificateValidator.validateCertificates(req, comparisonResults.metadata);
+          const attributeResults = AttributeMapper.analyzeAttributes(req);
+          const checklistResults = OnboardingChecklist.generateChecklist(req, comparisonResults, securityResults);
+          
+          // Add to request
+          enriched.analysis = {
+            comparison: comparisonResults,
+            security: securityResults,
+            diagnostics: diagnosticResults,
+            certificates: certificateResults,
+            attributes: attributeResults,
+            checklist: checklistResults,
+            generatedAt: new Date().toISOString()
+          };
+        } catch (error) {
+          enriched.analysis = {
+            error: 'Failed to generate analysis: ' + error.message
+          };
+        }
+      }
+      
+      enhanced.push(enriched);
+    }
+    
+    return enhanced;
+  },
+
+  /**
+   * Export as text report
+   **/
+  'exportAsTextReport': function(exportResult) {
+    let report = 'SAML TRACER EXPORT REPORT\n';
+    report += '='.repeat(80) + '\n\n';
+    report += `Export Date: ${new Date(exportResult.timestamp).toLocaleString()}\n`;
+    report += `Total Requests: ${exportResult.requests.length}\n`;
+    report += `Includes Analysis: ${exportResult.includesAnalysis ? 'Yes' : 'No'}\n`;
+    report += '\n' + '='.repeat(80) + '\n\n';
+    
+    exportResult.requests.forEach((req, idx) => {
+      report += `REQUEST #${idx + 1}\n`;
+      report += '-'.repeat(80) + '\n';
+      report += `URL: ${req.url}\n`;
+      report += `Method: ${req.method}\n`;
+      report += `Timestamp: ${new Date(req.timestamp).toLocaleString()}\n`;
+      
+      if (req.saml) {
+        report += `\nSAML Information:\n`;
+        report += `  Type: ${req.saml.type || 'Unknown'}\n`;
+        report += `  Direction: ${req.saml.direction || 'Unknown'}\n`;
+        report += `  Issuer: ${req.saml.issuer || 'N/A'}\n`;
+        
+        if (req.saml.subject) {
+          report += `  Subject: ${req.saml.subject.nameId || 'N/A'}\n`;
+        }
+        
+        if (req.saml.audience) {
+          report += `  Audience: ${req.saml.audience}\n`;
+        }
+        
+        if (req.saml.statusCode) {
+          report += `  Status: ${req.saml.statusCode}\n`;
+        }
+        
+        // Add analysis if included
+        if (req.analysis) {
+          report += `\nANALYSIS RESULTS:\n`;
+          
+          // Security Score
+          if (req.analysis.security && req.analysis.security.securityScore !== undefined) {
+            report += `  Security Score: ${req.analysis.security.securityScore}/100 (Grade: ${req.analysis.security.grade})\n`;
+          }
+          
+          // Diagnostics
+          if (req.analysis.diagnostics && req.analysis.diagnostics.issues.length > 0) {
+            report += `  Issues Found: ${req.analysis.diagnostics.issues.length}\n`;
+            req.analysis.diagnostics.issues.forEach(issue => {
+              report += `    - [${issue.severity.toUpperCase()}] ${issue.title}: ${issue.description}\n`;
+            });
+          }
+          
+          // Certificates
+          if (req.analysis.certificates) {
+            report += `  Certificates: ${req.analysis.certificates.summary.total} found\n`;
+            if (req.analysis.certificates.summary.expired > 0) {
+              report += `    ⚠️  ${req.analysis.certificates.summary.expired} expired\n`;
+            }
+            if (req.analysis.certificates.summary.expiringSoon > 0) {
+              report += `    ⚠️  ${req.analysis.certificates.summary.expiringSoon} expiring soon\n`;
+            }
+          }
+          
+          // Checklist
+          if (req.analysis.checklist) {
+            report += `  Readiness Score: ${req.analysis.checklist.readinessScore}/100 (${req.analysis.checklist.status})\n`;
+          }
+          
+          // Recommendations
+          if (req.analysis.diagnostics && req.analysis.diagnostics.recommendations.length > 0) {
+            report += `  Recommendations:\n`;
+            req.analysis.diagnostics.recommendations.forEach(rec => {
+              report += `    - ${rec.title}\n`;
+            });
+          }
+        }
+      }
+      
+      report += '\n' + '='.repeat(80) + '\n\n';
+    });
+    
+    return report;
   },
 
   'serialize': function(exportResult) {
