@@ -118,6 +118,10 @@ ui = {
       let importDialogContent = document.getElementById("importDialogContent");
       importDialogContent.contentWindow.ui.setupContent();
     }, true);
+    document.getElementById("button-metadata").addEventListener("click", () => {
+      let metadataDialog = document.getElementById("metadataDialog");
+      metadataDialog.style.visibility = "visible";
+    }, true);
 
     let modalCloseButtons = document.querySelectorAll(".modal-close");
     modalCloseButtons.forEach(button => button.addEventListener("click", ui.hideDialogs, true));

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>SAML Metadata Manager</title>
+    <link rel="stylesheet" href="resources/css/dialog.css" type="text/css">
+    <link rel="stylesheet" href="resources/css/buttons.css" type="text/css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin-top: 0;
+            color: #333;
+            font-size: 24px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #555;
+            font-size: 18px;
+            margin-top: 25px;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-size: 14px;
+            color: #666;
+            transition: all 0.3s;
+        }
+        .tab:hover {
+            color: #333;
+            background: #f9f9f9;
+        }
+        .tab.active {
+            color: #2196F3;
+            border-bottom-color: #2196F3;
+            font-weight: 600;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        input[type="text"],
+        input[type="url"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        textarea {
+            min-height: 200px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .file-upload {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        input[type="file"] {
+            flex: 1;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #2196F3;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #1976D2;
+        }
+        .btn-secondary {
+            background: #757575;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #616161;
+        }
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+        .stored-metadata {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .metadata-item {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .metadata-item:last-child {
+            border-bottom: none;
+        }
+        .metadata-info {
+            flex: 1;
+        }
+        .metadata-type {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #e3f2fd;
+            color: #1976D2;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+        .metadata-domain {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        .metadata-entity {
+            color: #666;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .metadata-date {
+            color: #999;
+            font-size: 11px;
+            margin-top: 3px;
+        }
+        .metadata-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .btn-small {
+            padding: 5px 12px;
+            font-size: 12px;
+        }
+        .validation-results {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+        .validation-item {
+            padding: 8px;
+            margin-bottom: 8px;
+            border-left: 3px solid;
+            background: white;
+        }
+        .validation-item.error {
+            border-color: #f44336;
+            background: #ffebee;
+        }
+        .validation-item.warning {
+            border-color: #ff9800;
+            background: #fff3e0;
+        }
+        .validation-item.info {
+            border-color: #2196F3;
+            background: #e3f2fd;
+        }
+        .validation-item.success {
+            border-color: #4CAF50;
+            background: #e8f5e9;
+        }
+        .status-message {
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .status-message.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #4CAF50;
+        }
+        .status-message.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #f44336;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 SAML Metadata Manager</h1>
+        
+        <div id="statusMessage" class="status-message"></div>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="upload">Upload Metadata</button>
+            <button class="tab" data-tab="manual">Manual Entry</button>
+            <button class="tab" data-tab="stored">Stored Metadata</button>
+        </div>
+
+        <!-- Upload Metadata Tab -->
+        <div id="upload-tab" class="tab-content active">
+            <h2>Upload SAML Metadata</h2>
+            <p class="help-text">Upload SP or IdP metadata XML to enable intelligent SAML analysis</p>
+            
+            <div class="form-group">
+                <label>Metadata Type:</label>
+                <select id="metadataType">
+                    <option value="auto">Auto-detect</option>
+                    <option value="SP">Service Provider (SP)</option>
+                    <option value="IdP">Identity Provider (IdP)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Upload XML File:</label>
+                <input type="file" id="metadataFile" accept=".xml,text/xml">
+                <p class="help-text">Select a SAML metadata XML file</p>
+            </div>
+
+            <div class="form-group">
+                <label>Or Paste XML:</label>
+                <textarea id="metadataXml" placeholder="Paste SAML metadata XML here..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Domain/Key (optional):</label>
+                <input type="text" id="metadataDomain" placeholder="e.g., example.com or leave empty to use Entity ID">
+                <p class="help-text">Used to associate metadata with specific domains. Leave empty to use Entity ID.</p>
+            </div>
+
+            <div id="validationResults" class="validation-results" style="display: none;">
+                <h3>Validation Results:</h3>
+                <div id="validationContent"></div>
+            </div>
+
+            <div class="button-group">
+                <button id="btnParseMetadata" class="btn btn-primary">Parse & Validate</button>
+                <button id="btnSaveMetadata" class="btn btn-primary" style="display: none;">Save Metadata</button>
+                <button id="btnClearForm" class="btn btn-secondary">Clear</button>
+            </div>
+        </div>
+
+        <!-- Manual Entry Tab -->
+        <div id="manual-tab" class="tab-content">
+            <h2>Manual Baseline Entry</h2>
+            <p class="help-text">Create a basic baseline when metadata is unavailable</p>
+
+            <div class="form-group">
+                <label>Entity ID: *</label>
+                <input type="text" id="manualEntityId" placeholder="https://sp.example.com" required>
+            </div>
+
+            <div class="form-group">
+                <label>Type: *</label>
+                <select id="manualType">
+                    <option value="SP">Service Provider (SP)</option>
+                    <option value="IdP">Identity Provider (IdP)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Assertion Consumer Service URLs:</label>
+                <textarea id="manualAcsUrls" placeholder="https://sp.example.com/acs&#10;https://sp.example.com/saml/acs" rows="3"></textarea>
+                <p class="help-text">One URL per line</p>
+            </div>
+
+            <div class="form-group">
+                <label>Single Logout URLs:</label>
+                <textarea id="manualLogoutUrls" placeholder="https://sp.example.com/logout&#10;https://sp.example.com/saml/logout" rows="2"></textarea>
+                <p class="help-text">One URL per line</p>
+            </div>
+
+            <div class="form-group">
+                <label>NameID Formats:</label>
+                <textarea id="manualNameIdFormats" placeholder="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress&#10;urn:oasis:names:tc:SAML:2.0:nameid-format:persistent" rows="2"></textarea>
+                <p class="help-text">One format per line</p>
+            </div>
+
+            <div class="button-group">
+                <button id="btnSaveManual" class="btn btn-primary">Save Baseline</button>
+                <button id="btnClearManual" class="btn btn-secondary">Clear</button>
+            </div>
+        </div>
+
+        <!-- Stored Metadata Tab -->
+        <div id="stored-tab" class="tab-content">
+            <h2>Stored Metadata</h2>
+            <div id="storedMetadataList">
+                <div class="empty-state">No metadata stored yet</div>
+            </div>
+            <div class="button-group">
+                <button id="btnRefreshList" class="btn btn-secondary">Refresh</button>
+                <button id="btnClearAll" class="btn btn-danger">Clear All</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="storageManager.js"></script>
+    <script type="text/javascript" src="metadataManager.js"></script>
+    <script type="text/javascript" src="metadataDialog.js"></script>
+</body>
+</html>
